@@ -20,16 +20,16 @@ Frontend (React + Vite)  ←→  Backend (Node.js / Express)  ←→  Supabase D
 
 | Category | What It Does |
 |----------|-------------|
-| 🗺️ **Live Map** | Interactive physical-terrain map (OpenTopoMap) with real-time shipment positions, polyline route overlays, and warehouse markers |
-| 📦 **Shipment Tracking** | 20+ live shipments with status, priority, ETA, SLA deadline, and current geo-position |
-| 🤖 **AI Agent** | Autonomous rerouting engine using Gemini AI — observes telemetry, reasons about risk, and issues decisions |
-| 🔁 **Dynamic Rerouting** | One-click reroute analysis with alternative route scoring, ETA delta, and risk assessment |
-| 🏭 **Warehouse Intelligence** | 22 global port hubs tracked with capacity load, status, and congestion alerts |
-| 🚚 **Carrier Fleet** | 16 real carriers (DHL, UPS, USPS, DPD, FedEx etc.) with reliability scoring |
-| 🌦️ **Live Weather** | Current conditions and forecasts for any route waypoint via WeatherAPI |
-| 📡 **Vessel Tracking** | Live vessel position lookup by MMSI via MyShipTracking |
-| 💬 **Twilio Alerts** | SMS/WhatsApp dispatch for critical SLA breaches |
-| 📊 **SLA Dashboard** | Real-time SLA rate ring, sparkline trend, in-transit/delayed counters |
+|  **Live Map** | Interactive physical-terrain map (OpenTopoMap) with real-time shipment positions, polyline route overlays, and warehouse markers |
+|  **Shipment Tracking** | 20+ live shipments with status, priority, ETA, SLA deadline, and current geo-position |
+|  **AI Agent** | Autonomous rerouting engine using Gemini AI — observes telemetry, reasons about risk, and issues decisions |
+|  **Dynamic Rerouting** | One-click reroute analysis with alternative route scoring, ETA delta, and risk assessment |
+|  **Warehouse Intelligence** | 22 global port hubs tracked with capacity load, status, and congestion alerts |
+|  **Carrier Fleet** | 16 real carriers (DHL, UPS, USPS, DPD, FedEx etc.) with reliability scoring |
+|  **Live Weather** | Current conditions and forecasts for any route waypoint via WeatherAPI |
+|  **Vessel Tracking** | Live vessel position lookup by MMSI via MyShipTracking |
+|  **Twilio Alerts** | SMS/WhatsApp dispatch for critical SLA breaches |
+|  **SLA Dashboard** | Real-time SLA rate ring, sparkline trend, in-transit/delayed counters |
 
 ---
 
@@ -256,11 +256,11 @@ shipments    — id, origin_id, destination_id, carrier_id, status, priority, la
 
 | Region | Hubs |
 |--------|------|
-| 🌏 Asia Pacific | Singapore, Shanghai Yangshan, Busan, Hong Kong, Port Klang, Mumbai JNPT, Chennai, Dubai Jebel Ali |
-| 🌍 Europe | Rotterdam, Antwerp, Hamburg, Felixstowe |
-| 🌎 Americas | Los Angeles, Long Beach, New York/NJ, Houston, Santos Brazil |
-| 🌍 Africa/Middle East | Port Said Egypt, Durban South Africa |
-| 🇺🇸 US Originals | North Hub (NYC), South Hub (LA), West Hub (SF) |
+| Asia Pacific | Singapore, Shanghai Yangshan, Busan, Hong Kong, Port Klang, Mumbai JNPT, Chennai, Dubai Jebel Ali |
+| Europe | Rotterdam, Antwerp, Hamburg, Felixstowe |
+| Americas | Los Angeles, Long Beach, New York/NJ, Houston, Santos Brazil |
+| Africa/Middle East | Port Said Egypt, Durban South Africa |
+| US Originals | North Hub (NYC), South Hub (LA), West Hub (SF) |
 
 ---
 
