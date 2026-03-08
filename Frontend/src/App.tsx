@@ -203,14 +203,18 @@ const App: React.FC = () => {
           <Zap size={20} color="var(--primary)" />
         </div>
         {[
-          { id: 'ops', icon: <Globe size={18} />, label: 'Operations' },
-          { id: 'map', icon: <Map size={18} />, label: 'Live Map' },
+          { id: 'map',       icon: <Map size={18} />,       label: 'Live Map' },
+          { id: 'feed',      icon: <Globe size={18} />,     label: 'Ops Feed' },
           { id: 'analytics', icon: <BarChart3 size={18} />, label: 'Analytics' },
-          { id: 'agent', icon: <Brain size={18} />, label: 'Agent' },
-          { id: 'security', icon: <Shield size={18} />, label: 'Security' },
+          { id: 'agent',     icon: <Brain size={18} />,     label: 'Agent' },
+          { id: 'security',  icon: <Shield size={18} />,    label: 'Security' },
         ].map(n => (
           <button key={n.id} title={n.label} className={`nav-btn ${activeNav === n.id ? 'active' : ''}`}
-            onClick={() => { setActiveNav(n.id); if (n.id === 'map') setMainTab('map'); }}>
+            onClick={() => {
+              setActiveNav(n.id);
+              if (n.id === 'map') setMainTab('map');
+              if (n.id === 'feed') setMainTab('feed');
+            }}>
             {n.icon}
           </button>
         ))}
@@ -388,19 +392,7 @@ const App: React.FC = () => {
           height: 52, borderBottom: '1px solid var(--border)', display: 'flex', alignItems: 'center',
           padding: '0 24px', justifyContent: 'space-between', background: 'rgba(0,0,0,0.3)', backdropFilter: 'blur(20px)', flexShrink: 0
         }}>
-          <div style={{ display: 'flex', gap: 4 }}>
-            {([['map', 'Live Map', <Map size={13} />], ['feed', 'Ops Feed', <Globe size={13} />]] as const).map(([id, label, icon]) => (
-              <button key={id} onClick={() => setMainTab(id as 'map' | 'feed')} style={{
-                padding: '5px 14px', borderRadius: 99, fontSize: 12, fontWeight: 700, cursor: 'pointer',
-                display: 'flex', alignItems: 'center', gap: 6,
-                background: mainTab === id ? 'var(--primary-dim)' : 'transparent',
-                border: `1px solid ${mainTab === id ? 'rgba(0,212,255,0.3)' : 'var(--border)'}`,
-                color: mainTab === id ? 'var(--primary)' : 'var(--text-dim)',
-              }}>
-                {icon} {label}
-              </button>
-            ))}
-          </div>
+          <div style={{ display: 'flex', gap: 4 }} />
           <div style={{ display: 'flex', gap: 8, alignItems: 'center' }}>
             {selectedShipment && (
               <div style={{
@@ -475,13 +467,101 @@ const App: React.FC = () => {
                   </div>
                 </div>
               </div>
+            ) : activeNav === 'anomalies' ? (
+              <div style={{ flex: 1, padding: 24, overflowY: 'auto' }}>
+                <div style={{ display: 'flex', alignItems: 'center', gap: 12, marginBottom: 20 }}>
+                  <AlertTriangle size={22} color="var(--danger)" />
+                  <h2 style={{ fontSize: 18, fontWeight: 800, color: 'var(--text-bright)' }}>Active Anomalies</h2>
+                  <span style={{ fontSize: 11, padding: '2px 10px', borderRadius: 99, background: 'rgba(244,63,94,0.12)', color: 'var(--danger)', fontWeight: 700, border: '1px solid rgba(244,63,94,0.2)' }}>
+                    LIVE
+                  </span>
+                </div>
+                <div style={{ display: 'flex', flexWrap: 'wrap', gap: 14 }}>
+                  {(() => {
+                    const items: { id: string; label: string; msg: string; severity: 'danger' | 'warning' }[] = [];
+                    shipments.forEach((s: Shipment) => {
+                      const label = s.origin && s.destination ? `${s.origin} → ${s.destination}` : s.id.slice(0, 8);
+                      if (s.status === 'DELAYED') items.push({ id: s.id, label, msg: `${s.priority === 'CRITICAL' ? 'CRITICAL delay' : 'Delay detected'} — ${label}${s.currentLocation ? ` (${s.currentLocation})` : ''}`, severity: s.priority === 'CRITICAL' ? 'danger' : 'warning' });
+                      else if (s.priority === 'CRITICAL' && s.status === 'IN_TRANSIT') items.push({ id: s.id, label, msg: `CRITICAL cargo en route — ${label}`, severity: 'warning' });
+                    });
+                    warehouses.forEach((wh: Warehouse) => {
+                      const pct = Math.round(((wh.currentLoad ?? 0) / (wh.capacity || 1)) * 100);
+                      const whName = (wh as any).name ?? wh.location ?? wh.id.slice(0, 8);
+                      if (wh.status === 'CONGESTED' || pct >= 90) items.push({ id: wh.id, label: whName, msg: `${whName} hub exceeding ${pct}% capacity threshold`, severity: pct >= 95 ? 'danger' : 'warning' });
+                    });
+                    if (items.length === 0) return (
+                      <div style={{ width: '100%', display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', padding: 60, gap: 12 }}>
+                        <span style={{ fontSize: 36 }}>✅</span>
+                        <span style={{ color: 'var(--success)', fontSize: 15, fontWeight: 700 }}>All systems nominal — no active anomalies</span>
+                      </div>
+                    );
+                    return items.map(a => (
+                      <motion.div key={a.id} initial={{ opacity: 0, y: 12 }} animate={{ opacity: 1, y: 0 }}
+                        onClick={() => { if (shipments.find((s: Shipment) => s.id === a.id)) handleSelectShipment(a.id); }}
+                        style={{ padding: '14px 18px', borderRadius: 12, minWidth: 260, maxWidth: 340, flex: '1 1 260px',
+                          cursor: shipments.find((s: Shipment) => s.id === a.id) ? 'pointer' : 'default',
+                          background: a.severity === 'danger' ? 'var(--danger-dim)' : 'var(--warning-dim)',
+                          border: `1px solid ${a.severity === 'danger' ? 'rgba(244,63,94,0.3)' : 'rgba(245,158,11,0.3)'}` }}>
+                        <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: 8 }}>
+                          <span style={{ fontWeight: 800, fontSize: 12, color: a.severity === 'danger' ? 'var(--danger)' : 'var(--warning)' }}>{a.label}</span>
+                          <span style={{ fontSize: 9, padding: '2px 8px', borderRadius: 99, fontWeight: 700, background: a.severity === 'danger' ? 'rgba(244,63,94,0.15)' : 'rgba(245,158,11,0.15)', color: a.severity === 'danger' ? 'var(--danger)' : 'var(--warning)' }}>{a.severity === 'danger' ? 'CRITICAL' : 'WARNING'}</span>
+                        </div>
+                        <p style={{ fontSize: 12, color: 'var(--text-normal)', lineHeight: 1.5 }}>{a.msg}</p>
+                        {shipments.find((s: Shipment) => s.id === a.id) && (
+                          <div style={{ marginTop: 10, fontSize: 11, color: 'var(--primary)', fontWeight: 700, display: 'flex', alignItems: 'center', gap: 4 }}>
+                            Analyze Reroute <ChevronRight size={11} />
+                          </div>
+                        )}
+                      </motion.div>
+                    ));
+                  })()}
+                </div>
+              </div>
+            ) : activeNav === 'fleet' ? (
+              <div style={{ flex: 1, padding: 24, overflowY: 'auto' }}>
+                <div style={{ display: 'flex', alignItems: 'center', gap: 12, marginBottom: 20 }}>
+                  <Activity size={22} color="var(--accent)" />
+                  <h2 style={{ fontSize: 18, fontWeight: 800, color: 'var(--text-bright)' }}>Carrier Fleet</h2>
+                  <span style={{ fontSize: 11, padding: '2px 10px', borderRadius: 99, background: 'rgba(251,146,60,0.1)', color: 'var(--accent)', fontWeight: 700, border: '1px solid rgba(251,146,60,0.2)' }}>
+                    {carriers.length} carriers
+                  </span>
+                </div>
+                <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(240px, 1fr))', gap: 12 }}>
+                  {carriers.map((c: Carrier) => {
+                    const cType = (c as any).carrier_type ?? c.type ?? 'SEA';
+                    const typeColor = cType === 'AIR' ? 'var(--primary)' : cType === 'SEA' ? 'var(--accent)' : 'var(--success)';
+                    const rel = Math.round(((c as any).reliability_score ?? c.reliability ?? 0.9) * 100);
+                    const relColor = rel >= 95 ? 'var(--success)' : rel >= 80 ? 'var(--warning)' : 'var(--danger)';
+                    return (
+                      <div key={c.id} className="card" style={{ padding: '14px 16px', border: `1px solid ${typeColor}22` }}>
+                        <div style={{ display: 'flex', alignItems: 'center', gap: 12, marginBottom: 12 }}>
+                          <div style={{ width: 36, height: 36, borderRadius: 10, background: `${typeColor}15`, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+                            {cType === 'AIR' ? <Zap size={16} color={typeColor} /> : cType === 'SEA' ? <Navigation size={16} color={typeColor} /> : <Truck size={16} color={typeColor} />}
+                          </div>
+                          <div>
+                            <div style={{ fontSize: 13, fontWeight: 800, color: 'var(--text-bright)' }}>{c.name}</div>
+                            <span style={{ fontSize: 9, padding: '1px 6px', borderRadius: 4, background: `${typeColor}18`, color: typeColor, fontWeight: 700 }}>{cType}</span>
+                          </div>
+                        </div>
+                        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 6 }}>
+                          <span style={{ fontSize: 11, color: 'var(--text-dim)' }}>Reliability</span>
+                          <span style={{ fontSize: 13, fontWeight: 800, color: relColor }}>{rel}%</span>
+                        </div>
+                        <div style={{ height: 4, background: 'rgba(255,255,255,0.06)', borderRadius: 99, overflow: 'hidden' }}>
+                          <div style={{ height: '100%', width: `${rel}%`, background: relColor, borderRadius: 99, transition: 'width 1s ease', boxShadow: `0 0 6px ${relColor}88` }} />
+                        </div>
+                      </div>
+                    );
+                  })}
+                </div>
+              </div>
             ) : activeNav === 'security' ? (
               <div style={{ flex: 1, padding: 30, overflowY: 'auto', display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center' }}>
                 <Shield size={48} color="var(--success)" style={{ marginBottom: 16, opacity: 0.8 }} />
                 <h2 style={{ fontSize: 18, fontWeight: 800, color: 'var(--text-bright)', marginBottom: 8 }}>Vessel Security Nominal</h2>
                 <p style={{ fontSize: 13, color: 'var(--text-dim)', textAlign: 'center', maxWidth: 400 }}>All active carriers are reporting secure transponders. No piracy threat sectors intercepted in the last 48 hours.</p>
               </div>
-            ) : activeNav === 'map' || activeNav === 'ops' ? (
+            ) : activeNav === 'map' || activeNav === 'ops' || activeNav === 'feed' ? (
               // Map & Ops Feed View (Default)
               <>
                 {mainTab === 'map' ? (
@@ -575,21 +655,26 @@ const App: React.FC = () => {
               <div style={{ padding: '8px 16px', display: 'flex', gap: 8, overflowX: 'auto', alignItems: 'center', flex: 1 }}>
                 {(() => {
                   // Build anomaly list dynamically from live state
-                  const anomalies: { id: string; msg: string; severity: 'danger' | 'warning' }[] = [];
+                  const anomalies: { id: string; msg: string; severity: 'danger' | 'warning'; label?: string }[] = [];
 
                   // Delayed/Critical shipments
                   shipments.forEach((s: Shipment) => {
+                    const label = s.origin && s.destination
+                      ? `${s.origin} → ${s.destination}`
+                      : s.id.slice(0, 8);
                     if (s.status === 'DELAYED') {
                       anomalies.push({
                         id: s.id,
-                        msg: `${s.priority === 'CRITICAL' ? 'CRITICAL delay' : 'Delay detected'} — ${s.origin} → ${s.destination}${s.currentLocation ? ` (${s.currentLocation})` : ''}`,
+                        msg: `${s.priority === 'CRITICAL' ? 'CRITICAL delay' : 'Delay detected'} — ${label}${s.currentLocation ? ` (${s.currentLocation})` : ''}`,
                         severity: s.priority === 'CRITICAL' ? 'danger' : 'warning',
+                        label,
                       });
                     } else if (s.priority === 'CRITICAL' && s.status === 'IN_TRANSIT') {
                       anomalies.push({
                         id: s.id,
-                        msg: `CRITICAL cargo en route — monitoring active. ${s.origin} → ${s.destination}`,
+                        msg: `CRITICAL cargo en route — monitoring active. ${label}`,
                         severity: 'warning',
+                        label,
                       });
                     }
                   });
@@ -597,11 +682,13 @@ const App: React.FC = () => {
                   // Congested warehouses
                   warehouses.forEach((wh: Warehouse) => {
                     const pct = Math.round((wh.currentLoad / wh.capacity) * 100);
+                    const whName = (wh as any).name ?? wh.location ?? wh.id.slice(0, 8);
                     if (wh.status === 'CONGESTED' || pct >= 90) {
                       anomalies.push({
                         id: wh.id,
-                        msg: `${wh.location} hub exceeding ${pct}% capacity threshold`,
+                        msg: `${whName} hub exceeding ${pct}% capacity threshold`,
                         severity: pct >= 95 ? 'danger' : 'warning',
+                        label: whName,
                       });
                     }
                   });
@@ -614,11 +701,12 @@ const App: React.FC = () => {
                     );
                   }
 
-                  return anomalies.map(a => (
+                  return (anomalies as any[]).map(a => (
                     <motion.div key={a.id} initial={{ opacity: 0, scale: 0.95 }} animate={{ opacity: 1, scale: 1 }}
-                      onClick={() => { if (a.id.startsWith('SHP')) handleSelectShipment(a.id); }}
+                      onClick={() => { if (shipments.find((s: Shipment) => s.id === a.id)) handleSelectShipment(a.id); }}
                       style={{
-                        flexShrink: 0, padding: '10px 14px', borderRadius: 10, cursor: a.id.startsWith('SHP') ? 'pointer' : 'default',
+                        flexShrink: 0, padding: '10px 14px', borderRadius: 10,
+                        cursor: shipments.find((s: Shipment) => s.id === a.id) ? 'pointer' : 'default',
                         background: a.severity === 'danger' ? 'var(--danger-dim)' : 'var(--warning-dim)',
                         border: `1px solid ${a.severity === 'danger' ? 'rgba(244,63,94,0.25)' : 'rgba(245,158,11,0.25)'}`,
                         minWidth: 210, maxWidth: 280,
@@ -627,7 +715,7 @@ const App: React.FC = () => {
                         <span style={{
                           fontFamily: 'JetBrains Mono,monospace', fontSize: 11, fontWeight: 700,
                           color: a.severity === 'danger' ? 'var(--danger)' : 'var(--warning)'
-                        }}>{a.id}</span>
+                        }}>{a.label ?? a.id.slice(0, 12)}</span>
                         <span style={{
                           fontSize: 9, padding: '1px 6px', borderRadius: 99, fontWeight: 700,
                           background: a.severity === 'danger' ? 'rgba(244,63,94,0.15)' : 'rgba(245,158,11,0.15)',
@@ -635,7 +723,7 @@ const App: React.FC = () => {
                         }}>{a.severity === 'danger' ? 'CRITICAL' : 'WARNING'}</span>
                       </div>
                       <p style={{ fontSize: 11, color: 'var(--text-normal)', lineHeight: 1.4 }}>{a.msg}</p>
-                      {a.id.startsWith('SHP') && (
+                      {shipments.find((s: Shipment) => s.id === a.id) && (
                         <div style={{ marginTop: 6, fontSize: 10, color: 'var(--primary)', fontWeight: 700, display: 'flex', alignItems: 'center', gap: 4 }}>
                           Analyze Reroute <ChevronRight size={10} />
                         </div>
@@ -645,44 +733,6 @@ const App: React.FC = () => {
                 })()}
               </div>
 
-            </div>
-
-            {/* Carrier Fleet */}
-            <div style={{ width: 380, borderLeft: '1px solid var(--border)', display: 'flex', flexDirection: 'column', overflow: 'hidden' }}>
-              <div style={{ padding: '10px 18px', borderBottom: '1px solid var(--border)', display: 'flex', alignItems: 'center', gap: 8, flexShrink: 0 }}>
-                <Activity size={14} color="var(--accent)" />
-                <span style={{ fontSize: 11, fontWeight: 700, letterSpacing: '0.1em', textTransform: 'uppercase', color: 'var(--text-dim)' }}>Carrier Fleet</span>
-              </div>
-              <div style={{ flex: 1, overflowY: 'auto', padding: '8px 14px', display: 'flex', flexDirection: 'column', gap: 6 }}>
-                {carriers.map((c: Carrier) => {
-                  const typeColor = c.type === 'AIR' ? 'var(--primary)' : c.type === 'SEA' ? 'var(--accent)' : 'var(--success)';
-                  return (
-                    <div key={c.id} style={{
-                      display: 'flex', alignItems: 'center', justifyContent: 'space-between',
-                      padding: '8px 12px', borderRadius: 8, background: 'rgba(255,255,255,0.02)', border: '1px solid var(--border)'
-                    }}>
-                      <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
-                        <div style={{
-                          width: 28, height: 28, borderRadius: 8, background: `${typeColor}18`,
-                          display: 'flex', alignItems: 'center', justifyContent: 'center'
-                        }}>
-                          {c.type === 'AIR' ? <Zap size={13} color={typeColor} /> : c.type === 'SEA' ? <Navigation size={13} color={typeColor} /> : <Truck size={13} color={typeColor} />}
-                        </div>
-                        <div>
-                          <div style={{ fontSize: 12, fontWeight: 700, color: 'var(--text-bright)' }}>{c.name}</div>
-                          <div style={{ fontSize: 10, color: 'var(--text-dim)' }}>{c.id} · {c.type}</div>
-                        </div>
-                      </div>
-                      <div style={{ textAlign: 'right' }}>
-                        <div style={{ fontSize: 12, fontWeight: 700, color: c.reliability > 0.95 ? 'var(--success)' : 'var(--warning)' }}>
-                          {(c.reliability * 100).toFixed(0)}%
-                        </div>
-                        <div style={{ fontSize: 9, color: 'var(--text-dim)' }}>reliability</div>
-                      </div>
-                    </div>
-                  );
-                })}
-              </div>
             </div>
           </div>
         </div>

@@ -49,7 +49,7 @@ async function fetchWarehousesFromSupabase(): Promise<Warehouse[]> {
     }
     return data.map((w: any) => ({
         id: w.id,
-        location: w.location ?? w.city ?? 'Unknown',
+        location: w.name ?? w.location ?? w.city ?? w.id.slice(0, 8),
         capacity: Number(w.capacity) || 1000,
         currentLoad: Number(w.current_load ?? w.currentLoad) || 0,
         status: w.status ?? 'OPERATIONAL',
@@ -66,9 +66,9 @@ async function fetchCarriersFromSupabase(): Promise<Carrier[]> {
     return data.map((c: any) => ({
         id: c.id,
         name: c.name,
-        reliability: Number(c.reliability ?? c.on_time_pickup_rate ?? 0.90),
+        reliability: Number(c.reliability_score ?? c.reliability ?? c.on_time_pickup_rate ?? 0.90),
         cost: Number(c.cost ?? c.rate ?? 5000),
-        type: c.type ?? c.carrier_type ?? 'SEA',
+        type: c.carrier_type ?? c.type ?? 'SEA',
         currentLocation: c.current_location ?? undefined,
     }));
 }
