@@ -6,23 +6,23 @@ import dotenv from 'dotenv';
 dotenv.config();
 import { Client } from 'pg';
 
-const DATABASE_URL = process.env.DATABASE_URL || '';
-if (!DATABASE_URL) {
-    console.error('❌ DATABASE_URL not set in .env');
+const DB_HOST = process.env.DB_HOST || 'db.bgflbnvvpwpcliophruk.supabase.co';
+const DB_USER = process.env.DB_USER || 'postgres';
+const DB_PASSWORD = process.env.DB_PASSWORD || '';
+const DB_NAME = process.env.DB_NAME || 'postgres';
+const DB_PORT = parseInt(process.env.DB_PORT || '5432');
+
+if (!DB_PASSWORD) {
+    console.error('❌ DB_PASSWORD not set in .env');
     process.exit(1);
 }
 
-// Parse pg connection params manually to handle special chars (&, #) in password
-function parsePgUrl(url: string) {
-    const match = url.match(/^postgresql:\/\/([^:]+):(.+)@([^:]+):(\d+)\/(.+)$/);
-    if (!match) throw new Error('Cannot parse DATABASE_URL: ' + url.replace(/:([^@]+)@/, ':***@'));
-    return { user: match[1], password: match[2], host: match[3], port: parseInt(match[4]), database: match[5] };
-}
-
-const pgConfig = parsePgUrl(DATABASE_URL);
-
 const client = new Client({
-    ...pgConfig,
+    host: DB_HOST,
+    user: DB_USER,
+    password: DB_PASSWORD,
+    database: DB_NAME,
+    port: DB_PORT,
     ssl: { rejectUnauthorized: false },
 });
 
@@ -110,7 +110,7 @@ GRANT ALL ON shipments  TO service_role;
 `;
 
 async function createTables() {
-    console.log('🔌 Connecting to new Supabase DB:', DATABASE_URL.replace(/:([^@]+)@/, ':***@'));
+    console.log('🔌 Connecting to new Supabase DB:', `${DB_USER}@${DB_HOST}:${DB_PORT}/${DB_NAME}`);
     await client.connect();
     console.log('✅ Connected!');
 

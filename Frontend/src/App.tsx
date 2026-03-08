@@ -109,6 +109,10 @@ const App: React.FC = () => {
   const [selectedShipment, setSelectedShipment] = useState<string | null>(null);
   const [reroutePanelOpen, setReroutePanelOpen] = useState(false);
   const [sparkData] = useState(() => Array.from({ length: 12 }, () => rand(70, 100)));
+  const [expandSection, setExpandSection] = useState<Record<string, boolean>>({
+    sla: true, warehouses: false, carriers: false
+  });
+  const toggleSection = (k: string) => setExpandSection(prev => ({ ...prev, [k]: !prev[k] }));
   const thoughtRef = useRef<HTMLDivElement>(null);
   const tickRef = useRef(0);
 
@@ -230,75 +234,139 @@ const App: React.FC = () => {
           </div>
         </div>
 
-        {/* SLA Ring */}
-        <div className="card" style={{ padding: 20 }}>
-          <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 12 }}>
-            <div style={{ fontSize: 11, fontWeight: 700, letterSpacing: '0.1em', color: 'var(--text-dim)', textTransform: 'uppercase' }}>SLA Rate</div>
-            <TrendingUp size={14} color="var(--success)" />
-          </div>
-          <div style={{ display: 'flex', alignItems: 'center', gap: 16 }}>
-            <div style={{ position: 'relative', flexShrink: 0 }}>
-              <Ring pct={slaRate} color="var(--success)" size={72} strokeW={6} />
-              <div style={{
-                position: 'absolute', inset: 0, display: 'flex', alignItems: 'center', justifyContent: 'center',
-                fontSize: 15, fontWeight: 800, color: 'var(--success)'
-              }}>{slaRate}%</div>
+        {/* SLA Ring — collapsible */}
+        <div className="card" style={{ padding: 0, overflow: 'hidden' }}>
+          <button
+            onClick={() => toggleSection('sla')}
+            style={{ width: '100%', padding: '12px 16px', display: 'flex', alignItems: 'center', justifyContent: 'space-between', background: 'transparent', border: 'none', cursor: 'pointer', color: 'inherit' }}
+          >
+            <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+              <TrendingUp size={14} color="var(--success)" />
+              <span style={{ fontSize: 11, fontWeight: 700, letterSpacing: '0.1em', color: 'var(--text-dim)', textTransform: 'uppercase' }}>SLA Rate</span>
             </div>
-            <div>
-              <div style={{ fontSize: 12, color: 'var(--text-normal)' }}>In transit: <b style={{ color: 'var(--text-bright)' }}>{inTransit}</b></div>
-              <div style={{ fontSize: 12, color: 'var(--text-normal)', marginTop: 4 }}>Delayed: <b style={{ color: 'var(--danger)' }}>{delayed}</b></div>
-              <div style={{ marginTop: 8 }}><Sparkline data={sparkData} color="var(--success)" /></div>
+            <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+              <span style={{ fontSize: 16, fontWeight: 800, color: 'var(--success)' }}>{isNaN(slaRate) ? '—' : slaRate + '%'}</span>
+              <ChevronRight size={14} color="var(--text-dim)" style={{ transform: expandSection.sla ? 'rotate(90deg)' : 'none', transition: 'transform 0.2s' }} />
             </div>
-          </div>
+          </button>
+          <AnimatePresence initial={false}>
+            {expandSection.sla && (
+              <motion.div key="sla-body" initial={{ height: 0, opacity: 0 }} animate={{ height: 'auto', opacity: 1 }} exit={{ height: 0, opacity: 0 }} transition={{ duration: 0.25 }} style={{ overflow: 'hidden' }}>
+                <div style={{ padding: '0 16px 16px', display: 'flex', alignItems: 'center', gap: 16 }}>
+                  <div style={{ position: 'relative', flexShrink: 0 }}>
+                    <Ring pct={isNaN(slaRate) ? 0 : slaRate} color="var(--success)" size={72} strokeW={6} />
+                    <div style={{ position: 'absolute', inset: 0, display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 15, fontWeight: 800, color: 'var(--success)' }}>{isNaN(slaRate) ? '—' : slaRate + '%'}</div>
+                  </div>
+                  <div>
+                    <div style={{ fontSize: 12, color: 'var(--text-normal)' }}>In transit: <b style={{ color: 'var(--text-bright)' }}>{inTransit}</b></div>
+                    <div style={{ fontSize: 12, color: 'var(--text-normal)', marginTop: 4 }}>Delayed: <b style={{ color: 'var(--danger)' }}>{delayed}</b></div>
+                    <div style={{ marginTop: 8 }}><Sparkline data={sparkData} color="var(--success)" /></div>
+                  </div>
+                </div>
+              </motion.div>
+            )}
+          </AnimatePresence>
         </div>
 
-        {/* Metric cards */}
-        {[
-          { label: 'Shipments', val: shipments.length, icon: <Package size={16} />, color: 'var(--primary)', cls: 'glow-cyan' },
-          { label: 'Warehouses', val: warehouses.length, icon: <Warehouse size={16} />, color: 'var(--secondary)', cls: 'glow-purple' },
-          { label: 'Carriers', val: carriers.length, icon: <Truck size={16} />, color: 'var(--accent)', cls: 'glow-orange' },
-        ].map(m => (
-          <motion.div key={m.label} className={`card ${m.cls}`} style={{ padding: '14px 16px' }}
-            initial={{ opacity: 0, x: -20 }} animate={{ opacity: 1, x: 0 }} transition={{ duration: 0.4 }}>
-            <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
-              <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
-                <div style={{
-                  width: 34, height: 34, borderRadius: 10, background: `${m.color}15`,
-                  display: 'flex', alignItems: 'center', justifyContent: 'center', color: m.color
-                }}>{m.icon}</div>
-                <div>
-                  <div style={{ fontSize: 11, color: 'var(--text-dim)', fontWeight: 600, letterSpacing: '0.06em', textTransform: 'uppercase' }}>{m.label}</div>
-                  <div style={{ fontSize: 22, fontWeight: 800, color: m.color, lineHeight: 1 }}>{m.val}</div>
-                </div>
+        {/* Metric cards — Shipments (plain), Warehouses + Carriers collapsible */}
+        {/* Shipments count — plain card */}
+        <motion.div className="card glow-cyan" style={{ padding: '14px 16px' }}
+          initial={{ opacity: 0, x: -20 }} animate={{ opacity: 1, x: 0 }} transition={{ duration: 0.4 }}>
+          <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
+            <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
+              <div style={{ width: 34, height: 34, borderRadius: 10, background: 'rgba(0,212,255,0.1)', display: 'flex', alignItems: 'center', justifyContent: 'center', color: 'var(--primary)' }}><Package size={16} /></div>
+              <div>
+                <div style={{ fontSize: 11, color: 'var(--text-dim)', fontWeight: 600, letterSpacing: '0.06em', textTransform: 'uppercase' }}>Shipments</div>
+                <div style={{ fontSize: 22, fontWeight: 800, color: 'var(--primary)', lineHeight: 1 }}>{shipments.length}</div>
               </div>
-              <Ring pct={75} color={m.color} size={44} strokeW={4} />
             </div>
-          </motion.div>
-        ))}
+            <Ring pct={Math.round(inTransit / Math.max(shipments.length, 1) * 100)} color="var(--primary)" size={44} strokeW={4} />
+          </div>
+        </motion.div>
 
-        {/* Warehouse bars */}
-        <div className="card" style={{ padding: 16 }}>
-          <div style={{ fontSize: 11, fontWeight: 700, color: 'var(--text-dim)', letterSpacing: '0.1em', textTransform: 'uppercase', marginBottom: 12 }}>Warehouse Load</div>
-          {warehouses.map((wh: Warehouse) => {
-            const pct = Math.round((wh.currentLoad / wh.capacity) * 100);
-            const col = pct > 90 ? 'var(--danger)' : pct > 70 ? 'var(--warning)' : 'var(--success)';
-            return (
-              <div key={wh.id} style={{ marginBottom: 14 }}>
-                <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 4 }}>
-                  <span style={{ fontSize: 12, fontWeight: 600, color: 'var(--text-normal)' }}>{wh.location}</span>
-                  <span style={{ fontSize: 11, color: col, fontWeight: 700 }}>{pct}%</span>
-                </div>
-                <div style={{ height: 4, background: 'rgba(255,255,255,0.06)', borderRadius: 99, overflow: 'hidden' }}>
-                  <motion.div className="bar-fill" style={{ background: col, boxShadow: `0 0 6px ${col}88` }}
-                    initial={{ width: 0 }} animate={{ width: `${pct}%` }} transition={{ duration: 1.2, ease: 'easeOut' }} />
-                </div>
+        {/* Warehouses — collapsible icon grid */}
+        <div className="card glow-purple" style={{ padding: 0, overflow: 'hidden' }}>
+          <button onClick={() => toggleSection('warehouses')} style={{ width: '100%', padding: '14px 16px', display: 'flex', alignItems: 'center', justifyContent: 'space-between', background: 'transparent', border: 'none', cursor: 'pointer', color: 'inherit' }}>
+            <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
+              <div style={{ width: 34, height: 34, borderRadius: 10, background: 'rgba(168,85,247,0.1)', display: 'flex', alignItems: 'center', justifyContent: 'center', color: 'var(--secondary)' }}><Warehouse size={16} /></div>
+              <div>
+                <div style={{ fontSize: 11, color: 'var(--text-dim)', fontWeight: 600, letterSpacing: '0.06em', textTransform: 'uppercase' }}>Warehouses</div>
+                <div style={{ fontSize: 22, fontWeight: 800, color: 'var(--secondary)', lineHeight: 1 }}>{warehouses.length}</div>
               </div>
-            );
-          })}
+            </div>
+            <ChevronRight size={16} color="var(--text-dim)" style={{ transform: expandSection.warehouses ? 'rotate(90deg)' : 'none', transition: 'transform 0.2s' }} />
+          </button>
+          <AnimatePresence initial={false}>
+            {expandSection.warehouses && (
+              <motion.div key="wh-body" initial={{ height: 0, opacity: 0 }} animate={{ height: 'auto', opacity: 1 }} exit={{ height: 0, opacity: 0 }} transition={{ duration: 0.25 }} style={{ overflow: 'hidden' }}>
+                <div style={{ padding: '0 12px 12px', display: 'flex', flexWrap: 'wrap', gap: 8 }}>
+                  {warehouses.map((wh: Warehouse) => {
+                    const label = (wh as any).name ?? wh.location ?? wh.id.slice(0, 6);
+                    const pct = wh.capacity > 0 ? Math.round((wh.currentLoad / wh.capacity) * 100) : 0;
+                    const col = pct > 90 ? 'var(--danger)' : pct > 70 ? 'var(--warning)' : 'var(--success)';
+                    const abbr = label.split(' ').map((w: string) => w[0]).join('').slice(0, 3).toUpperCase();
+                    return (
+                      <button key={wh.id} title={`${label}\n${pct}% load (${wh.currentLoad}/${wh.capacity})\nStatus: ${wh.status}`}
+                        style={{ position: 'relative', width: 52, height: 52, borderRadius: 12, background: `${col}15`, border: `1.5px solid ${col}55`, cursor: 'pointer', display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', gap: 2, padding: 0 }}
+                        onClick={() => setSelectedShipment(null)}>
+                        <span style={{ fontSize: 9, fontWeight: 800, color: col, fontFamily: 'JetBrains Mono,monospace', lineHeight: 1 }}>{abbr}</span>
+                        <span style={{ fontSize: 9, fontWeight: 700, color: col }}>{pct}%</span>
+                        {/* Mini ring */}
+                        <svg width="46" height="46" style={{ position: 'absolute', inset: 0, transform: 'rotate(-90deg)' }}>
+                          <circle cx="23" cy="23" r="19" fill="none" stroke={`${col}20`} strokeWidth="3" />
+                          <circle cx="23" cy="23" r="19" fill="none" stroke={col} strokeWidth="3"
+                            strokeDasharray={`${2 * Math.PI * 19}`}
+                            strokeDashoffset={`${2 * Math.PI * 19 * (1 - pct / 100)}`}
+                            strokeLinecap="round" />
+                        </svg>
+                      </button>
+                    );
+                  })}
+                </div>
+              </motion.div>
+            )}
+          </AnimatePresence>
         </div>
+
+        {/* Carriers — collapsible list */}
+        <div className="card glow-orange" style={{ padding: 0, overflow: 'hidden' }}>
+          <button onClick={() => toggleSection('carriers')} style={{ width: '100%', padding: '14px 16px', display: 'flex', alignItems: 'center', justifyContent: 'space-between', background: 'transparent', border: 'none', cursor: 'pointer', color: 'inherit' }}>
+            <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
+              <div style={{ width: 34, height: 34, borderRadius: 10, background: 'rgba(251,146,60,0.1)', display: 'flex', alignItems: 'center', justifyContent: 'center', color: 'var(--accent)' }}><Truck size={16} /></div>
+              <div>
+                <div style={{ fontSize: 11, color: 'var(--text-dim)', fontWeight: 600, letterSpacing: '0.06em', textTransform: 'uppercase' }}>Carriers</div>
+                <div style={{ fontSize: 22, fontWeight: 800, color: 'var(--accent)', lineHeight: 1 }}>{carriers.length}</div>
+              </div>
+            </div>
+            <ChevronRight size={16} color="var(--text-dim)" style={{ transform: expandSection.carriers ? 'rotate(90deg)' : 'none', transition: 'transform 0.2s' }} />
+          </button>
+          <AnimatePresence initial={false}>
+            {expandSection.carriers && (
+              <motion.div key="cr-body" initial={{ height: 0, opacity: 0 }} animate={{ height: 'auto', opacity: 1 }} exit={{ height: 0, opacity: 0 }} transition={{ duration: 0.25 }} style={{ overflow: 'hidden' }}>
+                <div style={{ padding: '0 12px 12px', display: 'flex', flexDirection: 'column', gap: 6, maxHeight: 220, overflowY: 'auto' }}>
+                  {carriers.map((c: Carrier) => {
+                    const rel = Math.round(((c as any).reliability_score ?? c.reliability ?? 0.9) * 100);
+                    const col = rel >= 95 ? 'var(--success)' : rel >= 85 ? 'var(--warning)' : 'var(--danger)';
+                    return (
+                      <div key={c.id} style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '6px 8px', borderRadius: 8, background: 'rgba(255,255,255,0.03)', border: '1px solid rgba(255,255,255,0.05)' }}>
+                        <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+                          <Navigation size={12} color="var(--accent)" />
+                          <span style={{ fontSize: 11, fontWeight: 700, color: 'var(--text-normal)' }}>{c.name}</span>
+                        </div>
+                        <span style={{ fontSize: 10, fontWeight: 800, color: col }}>{rel}%</span>
+                      </div>
+                    );
+                  })}
+                </div>
+              </motion.div>
+            )}
+          </AnimatePresence>
+        </div>
+
+        {/* Warehouse load — removed, now inside the collapsible Warehouses card above */}
 
         {/* Agent trigger */}
-        <div style={{ marginTop: 'auto' }}>
+        <div style={{ paddingTop: 8 }}>
           <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 8 }}>
             <div style={{ fontSize: 11, color: 'var(--text-dim)', fontWeight: 700, letterSpacing: '0.1em', textTransform: 'uppercase' }}>Agent</div>
             <div style={{ display: 'flex', alignItems: 'center', gap: 6, fontSize: 11, color: 'var(--success)' }}>

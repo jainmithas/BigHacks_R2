@@ -18,25 +18,30 @@ L.Icon.Default.mergeOptions({
 const makeShipIcon = (color: string, label: string, pulse: boolean) =>
     L.divIcon({
         className: '',
-        iconSize: [36, 36],
-        iconAnchor: [18, 18],
+        iconSize: [38, 38],
+        iconAnchor: [19, 19],
         html: `
       <div style="
-        position:relative; width:36px; height:36px;
+        position:relative; width:38px; height:38px;
         display:flex; align-items:center; justify-content:center;
       ">
         ${pulse ? `<span style="
           position:absolute; inset:0; border-radius:50%;
-          background:${color}; opacity:0.25;
+          background:${color}; opacity:0.20;
           animation:leaflet-pulse 1.8s ease-out infinite;
         "></span>` : ''}
         <div style="
-          width:20px; height:20px; border-radius:50%;
-          background:${color}; border:2px solid white;
-          box-shadow:0 0 10px ${color}88;
+          width:28px; height:28px; border-radius:50%;
+          background:#0d1520;
+          border:2.5px solid ${color};
+          box-shadow:0 2px 8px rgba(0,0,0,0.55), 0 0 10px ${color}77;
           display:flex; align-items:center; justify-content:center;
-          font-size:8px; font-weight:700; color:white; font-family:monospace;
-        ">${label}</div>
+        ">
+          <span style="
+            font-size:7px; font-weight:800; color:${color};
+            font-family:monospace; letter-spacing:-0.5px;
+          ">${label}</span>
+        </div>
       </div>
     `,
     });
